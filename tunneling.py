@@ -2,11 +2,9 @@
 
 import sys
 from PySide2.QtCore import QCoreApplication, Slot, QTimer
-from PySide2.QtNetwork import QTcpServer, QUdpSocket, QHostAddress
+from PySide2.QtNetwork import QTcpServer, QTcpSocket, QUdpSocket, QHostAddress, QAbstractSocket
 
-from mytcpsocket import MyTCPSocket
-
-REMOTE_HOST = "192.168.0.208"
+REMOTE_HOST = "186.66.161.232"
 REMOTE_TCP_PORT = 3001
 REMOTE_UDP_PORT = 52001
 
@@ -20,16 +18,17 @@ class App():
 
     def __init__(self, *args, **kwargs):
         self.tcpServer = QTcpServer()
-        self.tcpServer.listen(QHostAddress('0.0.0.0'), LOCAL_TCP_PORT)
         self.tcpServer.newConnection.connect(self.procNewConn)
+        self.tcpServer.listen(QHostAddress('0.0.0.0'), LOCAL_TCP_PORT)
 
-        self.udpServer = QUdpSocket()
-        self.udpServer.bind(QHostAddress('0.0.0.0'), LOCAL_UDP_PORT)
-        self.udpServer.readyRead.connect(self.udpL2R)
-
-        self.tcpRemote = MyTCPSocket()
+        self.tcpRemote = QTcpSocket()
+        self.tcpRemote.stateChanged.connect(self.onStateChanged)
         self.tcpRemote.readyRead.connect(self.tcpR2L)
-        self.tcpRemote.open(REMOTE_HOST, REMOTE_TCP_PORT)
+        self.tcpRemote.connectToHost(QHostAddress(REMOTE_HOST), REMOTE_TCP_PORT)
+
+        self.udpLocal = QUdpSocket()
+        self.udpLocal.readyRead.connect(self.udpL2R)
+        self.udpLocal.bind(QHostAddress('0.0.0.0'), LOCAL_UDP_PORT)
 
         self.udpRemote = QUdpSocket()
         self.udpRemote.readyRead.connect(self.udpR2L)
@@ -38,7 +37,18 @@ class App():
     def procNewConn(self):
         self.tpcLocal = self.tcpServer.nextPendingConnection()
         self.tpcLocal.readyRead.connect(self.tcpL2R)
-        print("cliente conectado")
+        print("New Local Client Connected")
+
+    @Slot(QAbstractSocket.SocketState)
+    def onStateChanged(self, state):
+        if state == QAbstractSocket.HostLookupState:
+            print("Lookup for Remote Host")
+        elif state == QAbstractSocket.ConnectingState:
+            print("Connecting to Remote Host")
+        elif state == QAbstractSocket.ConnectedState:
+            print("Connected to Remote Host")
+        elif state == QAbstractSocket.UnconnectedState:
+            print("Disconnected to Remote Host")
 
     @Slot()
     def tcpL2R(self):
@@ -54,8 +64,8 @@ class App():
 
     @Slot()
     def udpL2R(self):
-        while self.udpServer.hasPendingDatagrams() == True:
-            datagram = self.udpServer.receiveDatagram()
+        while self.udpLocal.hasPendingDatagrams() == True:
+            datagram = self.udpLocal.receiveDatagram()
             data = datagram.data()
             print("UDP L2R: %s" % data)
             self.udpResponseIP = datagram.senderAddress()
@@ -68,7 +78,7 @@ class App():
             datagram = self.udpRemote.receiveDatagram()
             data = datagram.data()
             print("UDP R2L: %s" % data)
-            self.udpServer.writeDatagram(data, self.udpResponseIP, self.udpResponsePort)
+            self.udpLocal.writeDatagram(data, self.udpResponseIP, self.udpResponsePort)
 
 if __name__ == "__main__":
     app=QCoreApplication(sys.argv)
