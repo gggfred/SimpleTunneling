@@ -4,7 +4,7 @@ import sys
 from PySide2.QtCore import QCoreApplication, Slot, QTimer
 from PySide2.QtNetwork import QTcpServer, QTcpSocket, QUdpSocket, QHostAddress, QAbstractSocket
 
-REMOTE_HOST = "186.66.161.232"
+REMOTE_HOST = "192.168.0.1"
 REMOTE_TCP_PORT = 3001
 REMOTE_UDP_PORT = 52001
 
