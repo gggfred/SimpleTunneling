@@ -4,12 +4,14 @@ import sys
 from PySide2.QtCore import QCoreApplication, Slot, QTimer
 from PySide2.QtNetwork import QTcpServer, QTcpSocket, QUdpSocket, QHostAddress, QAbstractSocket
 
-REMOTE_HOST = "192.168.0.1"
-REMOTE_TCP_PORT = 3001
-REMOTE_UDP_PORT = 52001
+REMOTE_CONTROLLER_IP = "192.168.0.1"
+REMOTE_TCP_CONTROLLER = 3001
+REMOTE_UDP_CONTROLLER = 52001
+REMOTE_TCP_TERMINAL = 19001
 
-LOCAL_TCP_PORT = 3001
-LOCAL_UDP_PORT = 52001
+LOCAL_TCP_CONTROLLER = 3001
+LOCAL_UDP_CONTROLLER = 52001
+LOCAL_TCP_TERMINAL = 19001
 
 class App():
     TCPLocal = None
@@ -19,7 +21,7 @@ class App():
     def __init__(self, *args, **kwargs):
         self.tcpServer = QTcpServer()
         self.tcpServer.newConnection.connect(self.procNewConn)
-        self.tcpServer.listen(QHostAddress('0.0.0.0'), LOCAL_TCP_PORT)
+        self.tcpServer.listen(QHostAddress('0.0.0.0'), LOCAL_TCP_CONTROLLER)
 
         self.tcpRemote = QTcpSocket()
         self.tcpRemote.stateChanged.connect(self.onRemoteStateChanged)
@@ -27,7 +29,7 @@ class App():
 
         self.udpLocal = QUdpSocket()
         self.udpLocal.readyRead.connect(self.udpL2R)
-        self.udpLocal.bind(QHostAddress('0.0.0.0'), LOCAL_UDP_PORT)
+        self.udpLocal.bind(QHostAddress('0.0.0.0'), LOCAL_UDP_CONTROLLER)
 
         self.udpRemote = QUdpSocket()
         self.udpRemote.readyRead.connect(self.udpR2L)
@@ -42,7 +44,7 @@ class App():
         if self.tcpRemote.isOpen() == False:
             print('Try open')
             self.tcpRemote.connectToHost(
-                QHostAddress(REMOTE_HOST), REMOTE_TCP_PORT)
+                QHostAddress(REMOTE_CONTROLLER_IP), REMOTE_TCP_CONTROLLER)
 
     @Slot()
     def procNewConn(self):
@@ -89,7 +91,7 @@ class App():
                 datagram.destinationPort()))
             print("UDP L2R: %s" % data)
             self.udpRemote.writeDatagram(
-                data, QHostAddress(REMOTE_HOST), REMOTE_UDP_PORT)
+                data, QHostAddress(REMOTE_CONTROLLER_IP), REMOTE_UDP_CONTROLLER)
 
     @Slot()
     def udpR2L(self):
