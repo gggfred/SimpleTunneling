@@ -22,7 +22,7 @@ class TunnelTCP():
 
         self.timerOpenRemote = QTimer()
         self.timerOpenRemote.timeout.connect(self.tryOpenRemote)
-        self.timerOpenRemote.setInterval(1000)
+        self.timerOpenRemote.setInterval(5000)
 
     def setRemoteIPAddress(self, ip):
         self.remoteIPAddress = ip
@@ -53,6 +53,7 @@ class TunnelTCP():
         elif state == QAbstractSocket.UnconnectedState:
             print("%s: Disconnected to Remote Host" % self.name)
             self.remoteTCPSocket.close()
+            self.localTCPSocket.close()
             self.timerOpenRemote.stop()
 
     @Slot(QAbstractSocket.SocketState)
