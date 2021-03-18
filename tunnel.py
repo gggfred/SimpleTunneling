@@ -1,5 +1,12 @@
+import logging
+
 from PySide2.QtCore import QCoreApplication, Slot, QTimer
 from PySide2.QtNetwork import QTcpServer, QTcpSocket, QUdpSocket, QHostAddress, QAbstractSocket
+
+FORMAT = '%(asctime)-15s %(message)s'
+logging.basicConfig(format=FORMAT, level=logging.WARNING)
+logger = logging.getLogger('tunnel') # Logger for this module
+logger.setLevel(logging.INFO)  # Debugging for this file. # (2)
 
 class TunnelTCP():
     name = ""
@@ -39,19 +46,19 @@ class TunnelTCP():
     @Slot()
     def tryOpenRemote(self):
         if self.remoteTCPSocket.isOpen() == False:
-            print('%s: Try to open %s:%s' % (self.name, self.remoteIPAddress, self.remoteTCPport))
+            logger.info('%s: Try to open %s:%s' % (self.name, self.remoteIPAddress, self.remoteTCPport))
             self.remoteTCPSocket.connectToHost(QHostAddress(self.remoteIPAddress), self.remoteTCPport)
 
     @Slot(QAbstractSocket.SocketState)
     def onRemoteStateChanged(self, state):
         if state == QAbstractSocket.HostLookupState:
-            print("%s: Lookup for Remote Host" % self.name)
+            logger.info("%s: Lookup for Remote Host" % self.name)
         elif state == QAbstractSocket.ConnectingState:
-            print("%s: Connecting to Remote Host" % self.name)
+            logger.info("%s: Connecting to Remote Host" % self.name)
         elif state == QAbstractSocket.ConnectedState:
-            print("%s: Connected to Remote Host" % self.name)
+            logger.info("%s: Connected to Remote Host" % self.name)
         elif state == QAbstractSocket.UnconnectedState:
-            print("%s: Disconnected to Remote Host" % self.name)
+            logger.info("%s: Disconnected to Remote Host" % self.name)
             self.remoteTCPSocket.close()
             self.localTCPSocket.close()
             self.timerOpenRemote.stop()
@@ -59,7 +66,7 @@ class TunnelTCP():
     @Slot(QAbstractSocket.SocketState)
     def onLocalStateChanged(self, state):
         if state == QAbstractSocket.UnconnectedState:
-            print("%s: Client disconnected" % self.name)
+            logger.info("%s: Client disconnected" % self.name)
             self.remoteTCPSocket.close()
             self.timerOpenRemote.stop()
 
@@ -73,20 +80,20 @@ class TunnelTCP():
 
         self.timerOpenRemote.start()
 
-        print("%s: %s client connected" % (self.name, self.clientPeerAddress.toString()))
+        logger.info("%s: %s client connected" % (self.name, self.clientPeerAddress.toString()))
 
     @Slot()
     def onLocal2Remote(self):
         if self.remoteTCPSocket.isOpen():
             data = self.localTCPSocket.readAll()
-            print("%s: L2R: %s" % (self.name, data))
+            logger.info("%s: L2R: %s" % (self.name, data))
             self.remoteTCPSocket.write(data)
 
     @Slot()
     def onRemote2Local(self):
         if self.localTCPSocket.isOpen():
             data = self.remoteTCPSocket.readAll()
-            print("%s: R2L: %s" % (self.name, data))
+            logger.info("%s: R2L: %s" % (self.name, data))
             self.localTCPSocket.write(data)
 
 class TunnelUDP():
@@ -126,13 +133,13 @@ class TunnelUDP():
             data = datagram.data()
             self.udpResponseIP = datagram.senderAddress()
             self.udpResponsePort = datagram.senderPort()
-            print("%s: FROM: %s %s TO: %s %s" % (
+            logger.debug("%s: FROM: %s %s TO: %s %s" % (
                 self.name,
                 datagram.senderAddress().toString(),
                 datagram.senderPort(),
                 datagram.destinationAddress().toString(),
                 datagram.destinationPort()))
-            print("%s: L2R: %s" % (self.name, data))
+            logger.info("%s: L2R: %s" % (self.name, data))
             self.udpRemote.writeDatagram(data, QHostAddress(self.remoteIPAddress), self.remoteUDPport)
 
     @Slot()
@@ -140,12 +147,12 @@ class TunnelUDP():
         while self.udpRemote.hasPendingDatagrams() == True:
             datagram = self.udpRemote.receiveDatagram()
             data = datagram.data()
-            print("%s: FROM: %s %s TO: %s %s" % (
+            logger.debug("%s: FROM: %s %s TO: %s %s" % (
                 self.name,
                 datagram.senderAddress().toString(),
                 datagram.senderPort(),
                 datagram.destinationAddress().toString(),
                 datagram.destinationPort()))
-            print("%s: R2L: %s" % (self.name, data))
+            logger.info("%s: R2L: %s" % (self.name, data))
             self.udpLocal.writeDatagram(data, self.udpResponseIP, self.udpResponsePort)
 
