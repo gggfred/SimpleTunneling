@@ -1,6 +1,6 @@
 import logging
 
-from PySide2.QtCore import QCoreApplication, Slot, QTimer
+from PySide2.QtCore import Slot, QTimer
 from PySide2.QtNetwork import QTcpServer, QTcpSocket, QUdpSocket, QHostAddress, QAbstractSocket
 
 FORMAT = '%(asctime)-15s %(message)s'
